@@ -1,0 +1,4 @@
+::1 - - [17/Apr/2026:07:19:28 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.5.0"
+103.141.112.97 - - [17/Apr/2026:07:59:29 +0000] "GET / HTTP/1.1" 200 409 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+103.141.112.97 - - [17/Apr/2026:07:59:29 +0000] "GET /favicon.ico HTTP/1.1" 404 196 "http://54.236.218.130/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+103.141.112.97 - - [17/Apr/2026:07:59:38 +0000] "GET / HTTP/1.1" 200 409 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"

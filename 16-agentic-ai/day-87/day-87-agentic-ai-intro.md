@@ -1,427 +1,467 @@
-# Day 87 - Introduction to Agentic AI for DevOps
+# Day 87 – Introduction to Agentic AI for DevOps
 
 ## Objective
 
-The goal of Day 87 was to understand the fundamentals of **Agentic AI** by building a simple AI-powered DevOps assistant. Unlike traditional LLM applications that only generate text, an AI agent can reason about a problem, choose the appropriate tool, execute commands, observe the results, and provide an informed response.
-
-By the end of this lab, I built a Docker Troubleshooter Agent capable of interacting with the Docker CLI using LangChain tools and Ollama.
+The objective of Day 87 was to begin the **Agentic AI for DevOps** journey by understanding how Large Language Models (LLMs) can move beyond answering questions and become intelligent agents capable of interacting with real-world tools. During this lab, I configured a local AI environment using Ollama, explored prompt engineering, built a Docker Error Explainer, and developed a Docker Troubleshooter Agent capable of autonomously diagnosing Docker containers using the ReAct reasoning pattern.
 
 ---
 
-# Learning Objectives
+# What is an AI Agent?
 
-- Understand the difference between an LLM application and an AI Agent.
-- Set up a local Agentic AI development environment.
-- Use Ollama as a local LLM provider.
-- Build a Docker Error Explainer using Python and Ollama.
-- Create LangChain tools for Docker operations.
-- Build a ReAct Agent capable of invoking tools.
-- Understand how reasoning and tool execution work together.
-- Extend the agent with additional capabilities.
+An AI Agent is an application powered by a Large Language Model (LLM) that can reason, make decisions, and interact with external tools to accomplish tasks.
 
----
+Unlike traditional chatbots that only generate text, AI agents can:
 
-# Environment
+- Execute CLI commands
+- Read files
+- Call APIs
+- Inspect infrastructure
+- Analyze outputs
+- Decide the next action based on observations
 
-| Component | Version |
-|-----------|---------|
-| OS | Windows 11 |
-| Python | 3.13.15 |
-| Ollama | 0.32.6 |
-| Model | qwen3 |
-| LangChain | Latest |
-| LangGraph | Latest |
-| Docker | 29.6.2 |
+For DevOps engineers, this means AI can perform infrastructure troubleshooting in the same way an engineer would by interacting with Docker, Kubernetes, Terraform, AWS CLI, GitHub CLI, and many other tools.
 
 ---
 
-# Project Structure
+# AI Agent vs Chatbot
 
-```text
-agentic-ai-for-devops/
-│
-├── module-1/
-│   └── explainer.py
-│
-├── module-2/
-│   └── agent.py
-│
-├── README.md
-├── requirements.txt
-└── screenshots/
+| Chatbot                    | AI Agent                                             |
+| -------------------------- | ---------------------------------------------------- |
+| Generates text responses   | Uses tools to solve problems                         |
+| Cannot execute commands    | Can execute CLI commands                             |
+| Answers based on knowledge | Reasons using real infrastructure data               |
+| Passive assistant          | Autonomous problem solver                            |
+| No environment awareness   | Reads logs, container status, and system information |
+
+---
+
+# Why Agentic AI for DevOps?
+
+Modern DevOps work revolves around command-line tools.
+
+Instead of manually executing multiple commands, an AI agent can perform the workflow autonomously.
+
+Example:
+
+```
+User:
+Why is broken-app crashing?
+
+↓
+
+Agent decides to inspect containers
+
+↓
+
+docker ps -a
+
+↓
+
+Container found
+
+↓
+
+docker logs broken-app
+
+↓
+
+Reads logs
+
+↓
+
+docker inspect broken-app
+
+↓
+
+Analyzes exit code
+
+↓
+
+Provides root cause
 ```
 
+This significantly reduces troubleshooting time and provides consistent diagnostics.
+
 ---
 
-# Task 1 – Understanding Agentic AI
+# The ReAct Pattern
 
-Studied the core concepts of Agentic AI and how it differs from traditional LLM applications.
+ReAct stands for:
 
-### LLM Application
+- **Reason**
+- **Act**
+- **Observe**
 
-```text
-User
-   │
-   ▼
-Prompt
-   │
-   ▼
-LLM
-   │
-   ▼
-Response
+Instead of immediately answering a question, the AI continuously reasons about which tool to use next.
+
+Example:
+
 ```
+User:
+Why is broken-app crashing?
 
-The model only generates text.
+↓
 
----
-
-### AI Agent
-
-```text
-User
-   │
-   ▼
 Reason
-   │
-   ▼
-Choose Tool
-   │
-   ▼
-Execute Tool
-   │
-   ▼
-Observe Output
-   │
-   ▼
-Reason Again
-   │
-   ▼
+
+I should inspect running containers.
+
+↓
+
+Action
+
+docker ps -a
+
+↓
+
+Observation
+
+broken-app is exited.
+
+↓
+
+Reason
+
+I should inspect the logs.
+
+↓
+
+Action
+
+docker logs broken-app
+
+↓
+
+Observation
+
+Application exits after 2 seconds.
+
+↓
+
+Reason
+
+Inspect container configuration.
+
+↓
+
+Action
+
+docker inspect broken-app
+
+↓
+
+Observation
+
+ExitCode = 1
+
+↓
+
 Final Answer
+
+The container intentionally exits after executing its startup command.
 ```
 
-The model can interact with external systems and make decisions based on tool outputs.
+This reasoning loop continues until the model has enough information to produce an accurate response.
 
 ---
 
-# Task 2 – Environment Setup
+# Key Components of an Agent
 
-Installed and configured:
+## 1. LLM (Brain)
 
-- Python
-- pip
-- Virtual Environment
 - Ollama
-- Docker CLI
-- LangChain
-- LangGraph
+- Qwen 3:4B (used due to Gemma 4 compatibility issues)
+- Responsible for reasoning and decision-making.
 
-Verified installation using:
+---
+
+## 2. Tools (Hands)
+
+Python functions wrapped with the `@tool` decorator.
+
+Examples:
+
+- list_containers()
+- get_logs()
+- inspect_container()
+- list_images()
+
+Each tool executes an actual Docker CLI command.
+
+---
+
+## 3. Agent Framework
+
+LangChain's
+
+```python
+create_react_agent()
+```
+
+creates the reasoning loop that allows the AI to:
+
+- Think
+- Choose a tool
+- Read the output
+- Think again
+- Produce an answer
+
+---
+
+## 4. CLI Commands
+
+The tools internally execute commands such as:
 
 ```bash
-python --version
+docker ps -a
+docker logs
+docker inspect
+docker images
+```
 
-pip --version
+The LLM never executes commands directly—it calls Python tools that wrap these commands.
 
-ollama --version
+---
 
-docker --version
+# Environment Setup
+
+The following environment was configured successfully.
+
+## Local LLM
+
+- Ollama
+- Qwen 3:4B
+- Gemma 4 downloaded (Windows compatibility issue encountered)
+
+## Python Environment
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+```
+
+Installed dependencies:
+
+- langchain
+- langchain-ollama
+- langgraph
+- ollama
+- fastmcp
+- langchain-mcp-adapters
+
+---
+
+## Pre-flight Verification
+
+Successfully passed all setup checks.
+
+```
+[PASS] Python 3.10+
+[PASS] Docker
+[PASS] kubectl
+[PASS] Kind
+[PASS] Ollama + gemma4
+
+5/5 — you're ready!
 ```
 
 ---
 
-# Task 3 – Docker Error Explainer
+# Docker Error Explainer
 
-Built a simple AI application using Ollama.
+The first AI application was a simple Docker Error Explainer.
 
-### Features
+Instead of manually searching online, Docker error messages were sent directly to the local LLM.
 
-- Accept Docker-related questions.
-- Send prompts to Ollama.
-- Receive AI-generated troubleshooting guidance.
-- Use a custom system prompt.
-- Configure model temperature.
+Example error:
 
-### Example
-
-Input
-
-```text
+```
 docker: Error response from daemon:
 Conflict.
 The container name "/myapp" is already in use.
 ```
 
-Output
+The model explained:
 
-- Root Cause
-- Troubleshooting Steps
-- Docker Commands
-- Best Practices
+- What happened
+- Root cause
+- Commands to fix the issue
 
 ---
 
-# Prompt Engineering
+## Prompt Engineering
 
-Implemented a custom system prompt.
+A system prompt instructed the model to behave as a Docker expert.
+
+Example:
 
 ```python
 SYSTEM_PROMPT = """
-You are a Senior DevOps Engineer.
+You are a Docker expert.
 
-Explain Docker errors.
+Explain:
 
-Provide:
+1. What happened
+2. Root cause
+3. How to fix it
 
-1. Root Cause
-2. Troubleshooting
-3. Docker Commands
-4. Best Practices
-
-Keep responses concise.
+Keep responses short.
 """
 ```
 
+This demonstrated how prompt engineering significantly affects response quality.
+
 ---
 
-# Task 4 – Docker Troubleshooter Agent
+## Temperature
 
-Converted the application into a real AI Agent.
-
-Instead of answering directly, the agent now chooses Docker tools automatically.
-
-Implemented LangChain tools.
-
-### Tool 1
+The model used:
 
 ```python
-list_containers()
+temperature = 0.3
 ```
 
-Runs
+A lower temperature produces:
 
-```bash
-docker ps -a
-```
+- Deterministic responses
+- Consistent troubleshooting
+- Reliable technical explanations
 
 ---
 
-### Tool 2
+# Docker Troubleshooter Agent
+
+The next application introduced AI agents.
+
+Instead of simply generating text, the model was capable of using tools autonomously.
+
+Available tools included:
+
+- list_containers()
+- get_logs()
+- inspect_container()
+
+The agent successfully diagnosed the intentionally failing Docker container named:
+
+```
+broken-app
+```
+
+The diagnosis concluded that:
+
+- The startup command intentionally exited after two seconds.
+- Exit code was 1.
+- The container was behaving exactly as configured.
+
+---
+
+## Additional Tool
+
+A new custom tool was added.
 
 ```python
-get_logs(container_name)
+@tool
+def list_images():
 ```
 
-Runs
+This allowed the AI agent to answer questions such as:
 
-```bash
-docker logs
 ```
+What Docker images are available on this machine?
+```
+
+without any additional prompting.
 
 ---
 
-### Tool 3
+# Agent Architecture
 
-```python
-inspect_container(container_name)
 ```
-
-Runs
-
-```bash
-docker inspect
+                    User
+                      │
+                      ▼
+      Why is broken-app crashing?
+                      │
+                      ▼
+         ChatOllama (Qwen 3)
+                      │
+                      ▼
+        create_react_agent()
+                      │
+      ┌────────┬──────────┬──────────┐
+      ▼        ▼          ▼
+docker ps  docker logs docker inspect
+      │        │          │
+      └────────┴──────────┘
+               │
+               ▼
+       Tool Output (Text)
+               │
+               ▼
+     LLM Reasons Again
+               │
+               ▼
+        Final Diagnosis
 ```
-
----
-
-# Agent Workflow
-
-```text
-User
-
-↓
-
-ChatOllama
-
-↓
-
-Reason
-
-↓
-
-Select Tool
-
-↓
-
-Execute Docker Command
-
-↓
-
-Read Output
-
-↓
-
-Generate Final Response
-```
-
----
-
-# Task 5 – Understanding ReAct Architecture
-
-Learned the complete ReAct (Reason + Act) workflow.
-
-```text
-Question
-
-↓
-
-Reason
-
-↓
-
-Tool Selection
-
-↓
-
-Execute Tool
-
-↓
-
-Observe Result
-
-↓
-
-Reason Again
-
-↓
-
-Final Response
-```
-
-This architecture enables AI agents to interact with real-world systems instead of relying solely on model knowledge.
-
----
-
-# Task 6 – Extending the Agent
-
-Added a new capability.
-
-### Docker Images Tool
-
-```python
-list_images()
-```
-
-Runs
-
-```bash
-docker images
-```
-
-Although the local model did not consistently invoke this tool automatically, the implementation and registration were completed successfully, demonstrating how an agent can be extended with additional capabilities.
 
 ---
 
 # Challenges Faced
 
-## Python PATH Issues
+## Gemma 4 Compatibility Issue
 
-Problem
+While using Windows with Ollama, the Gemma 4 model repeatedly crashed with the following error:
 
-- Python was installed but not detected in Git Bash.
+```
+GGML_ASSERT(...)
+```
 
-Solution
+This issue occurred during tool-calling operations.
 
-- Updated the system PATH.
-- Restarted the terminal.
+To continue the lab successfully, the model was switched to:
 
----
+```
+Qwen 3:4B
+```
 
-## Ollama Model Issues
+which supported LangChain tool calling correctly and allowed the agent to function as expected.
 
-Problem
-
-Gemma 4 crashed during inference with internal runtime errors.
-
-Solution
-
-- Switched to the Qwen 3 model for better compatibility with tool calling.
-
----
-
-## Docker CLI Issues
-
-Problem
-
-Docker CLI was initially unavailable in the terminal.
-
-Solution
-
-- Started Docker Desktop.
-- Verified Docker installation and PATH.
-
----
-
-## LangChain Tool Calling
-
-Problem
-
-Some local models did not fully support tool invocation.
-
-Solution
-
-- Switched to a compatible Ollama model and verified successful ReAct agent execution.
-
----
-
-# Key Learnings
-
-- AI Agents are more powerful than traditional LLM applications.
-- LangChain tools allow LLMs to interact with external systems.
-- Tool descriptions (docstrings) play a critical role in tool selection.
-- ReAct enables reasoning before and after tool execution.
-- Local LLMs can be used for DevOps automation without relying on cloud APIs.
+This troubleshooting experience highlighted the importance of validating model compatibility with the chosen runtime environment.
 
 ---
 
 # Screenshots
 
-```
-screenshots/
-│
-├── 01-ollama-setup.png
-├── 02-docker-error-explainer.png
-├── 03-react-agent.png
-└── 04-list-images-tool.png
-```
+- Project setup
+- Python virtual environment
+- Dependency installation
+- Setup verification
+- Docker Error Explainer
+- System prompt
+- Broken Docker container
+- Docker Troubleshooter Agent diagnosis
+- Agent tool usage
+- Agent architecture
+- Custom tool implementation
+- Custom tool output
 
 ---
 
-# Outcome
+# Key Learnings
 
-Successfully built a local Agentic AI prototype capable of:
-
-- Explaining Docker errors.
-- Listing Docker containers.
-- Reading Docker logs.
-- Inspecting Docker containers.
-- Executing Docker commands through LangChain tools.
-- Reasoning using the ReAct pattern.
-- Extending the agent with additional Docker capabilities.
-
-This project establishes the foundation for building more advanced AI-powered DevOps agents capable of working with Kubernetes, Terraform, AWS, and other cloud-native tools.
+- Understood the difference between AI agents and traditional chatbots.
+- Learned the ReAct (Reason, Act, Observe) reasoning pattern.
+- Configured a local LLM environment using Ollama.
+- Built a Docker Error Explainer using prompt engineering.
+- Learned how system prompts influence model behavior.
+- Built a Docker Troubleshooter Agent using LangChain.
+- Integrated Docker CLI commands as AI tools.
+- Extended the agent with a custom tool.
+- Understood how AI agents autonomously reason over tool outputs.
+- Experienced and resolved a real-world model compatibility issue by switching from Gemma 4 to Qwen 3:4B.
 
 ---
 
-# Skills Practiced
+# Conclusion
 
-- Agentic AI
-- Prompt Engineering
-- Ollama
-- LangChain
-- LangGraph
-- ReAct Pattern
-- Docker CLI
-- Python
-- AI Tool Calling
-- DevOps Automation
+Day 87 marked the beginning of Agentic AI for DevOps. Instead of simply interacting with a language model, I built an autonomous AI agent capable of using Docker tools, reasoning over real infrastructure data, and diagnosing container issues. This architecture can be extended to Kubernetes, Terraform, AWS CLI, and other DevOps tools, laying the foundation for intelligent infrastructure automation.
